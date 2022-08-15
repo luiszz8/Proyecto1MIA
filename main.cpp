@@ -68,22 +68,22 @@ void fdisk(string);
 void mount(string);
 void unmount(string);
 void mkfs(string);
-void LeerDisco(string ruta);
+MBR LeerDisco(string ruta);
 string split(string s, string del);
 bool Exist(string path);
 void crearDirectorios(string);
 
 int main() {
     //mkdisk("mkdisk -s->5 -f->FF -path->\"/home/mis discos/Disco3.dsk\" -u->m");
-    mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Gatos/p/g/Disco2.dsk");
+    //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Gatos/p/g/Disco3.dsk");
     //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco3.dsk");
     //rmdisk("rmdisk -path->/home/luis/Descargas/Disco1.dsk");
-    //fdisk("fdisk -name->\"Particion1\" -path->/home/Disco1.dsk -delete->full");
+    fdisk("fdisk -s->300 -name->\"Particion123456789023\" -path->/home/luis/Descargas/Gatos/p/g/Disco3.dsk -delete->Full");
     //fdisk("fdisk -path->/home/Disco1.dsk -s->10 -add->-500 -name->\"Particion1\" -delete->full");
     //mount("mount -path->/home/Disco1.dsk -name->Part2");
     //unmount("unmount -id->061Disco1");
     //mkfs("mkfs -type->full -id->061Disco1 -fs->2fs");
-    //LeerDisco("/home/luis/Descargas/Disco2.dsk");
+    //LeerDisco("/home/luis/Descargas/Gatos/p/g/Disco2.dsk");
 
 
 
@@ -558,6 +558,44 @@ void fdisk(string linea){
         cout <<  "La name es" << endl;
         cout <<  part.name << endl;
     }
+
+    //Logica particiones
+    if(Exist(part.ruta)){
+        if(crear){
+            MBR discoAux=LeerDisco(part.ruta);
+            discoAux.mbr_partition_1.part_status='n';
+            discoAux.mbr_partition_1.part_type=part.tipo.c_str()[0];
+            discoAux.mbr_partition_1.part_fit=part.ajuste.c_str()[0];
+            discoAux.mbr_partition_1.part_start=0;
+            discoAux.mbr_partition_1.part_s=part.tamanio;
+            strcpy(discoAux.mbr_partition_1.part_name, part.name.substr(0,15).c_str());
+
+
+            FILE *file;
+            file = fopen(part.ruta.c_str(), "rb+");
+            int posicion=0;
+            int existe=1;
+            bool primero=false;
+            //MBR aux;
+            fseek(file, 0, SEEK_SET);
+            //int contador=0;
+            //while(existe==1){
+            //    fread(&aux, sizeof(MBR), 1, file);
+            //    if (aux.mbr_dsk_signature==0){
+            //        existe=0;
+            //    }
+            //    contador++;
+            //}
+            //fseek(file, ftell(file)-sizeof(MBR), SEEK_SET);
+
+
+            fwrite(&discoAux, sizeof(MBR), 1, file);
+
+            fclose(file);
+        }
+    }else{
+        cout <<  "El disco no existe" << endl;
+    }
 }
 
 void mount(string linea){
@@ -697,7 +735,7 @@ void mkfs(string linea){
     }
 }
 
-void LeerDisco(string ruta){
+MBR LeerDisco(string ruta){
 
     FILE *file;
     file = fopen(ruta.c_str(), "rb");
@@ -708,12 +746,8 @@ void LeerDisco(string ruta){
     MBR aux;
     int bandera=1;
     fread(&aux, sizeof(MBR), 1, file);
-    cout << "--------------------------"<<endl;
-    cout << "Tamanio: "<<aux.mbr_tamano<<endl;
-    cout << "Fit: "<<aux.dsk_fit<<endl;
-    cout << "Siganture: "<<aux.mbr_dsk_signature<<endl;
-    cout << "Fecha: "<<asctime(localtime(&aux.mbr_fecha_creacion))<<endl;
     fclose(file);
+    return aux;
 }
 
 void crearDirectorios(string ruta){

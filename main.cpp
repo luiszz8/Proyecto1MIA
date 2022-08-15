@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 using namespace std;
 
@@ -74,7 +75,8 @@ void crearDirectorios(string);
 
 int main() {
     //mkdisk("mkdisk -s->5 -f->FF -path->\"/home/mis discos/Disco3.dsk\" -u->m");
-    //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco2.dsk");
+    mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Gatos/p/g/Disco2.dsk");
+    //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco3.dsk");
     //rmdisk("rmdisk -path->/home/luis/Descargas/Disco1.dsk");
     //fdisk("fdisk -name->\"Particion1\" -path->/home/Disco1.dsk -delete->full");
     //fdisk("fdisk -path->/home/Disco1.dsk -s->10 -add->-500 -name->\"Particion1\" -delete->full");
@@ -82,7 +84,10 @@ int main() {
     //unmount("unmount -id->061Disco1");
     //mkfs("mkfs -type->full -id->061Disco1 -fs->2fs");
     //LeerDisco("/home/luis/Descargas/Disco2.dsk");
-    crearDirectorios("/home/luis/Descargas/juegos");
+
+
+
+
 
     return 0;
 }
@@ -201,6 +206,16 @@ void mkdisk(string linea){
         if(!Exist(disk.ruta)){
             FILE *file;
             file = fopen(disk.ruta.c_str(), "wb");
+            if(file==0){
+                cout << "archivo no encontrado"<<endl;
+                int tamRuta=disk.ruta.length();
+                int nombreTemporal=split(disk.ruta,"/").length();
+                string directorios=disk.ruta.substr(0,tamRuta-nombreTemporal-1);
+                crearDirectorios(directorios);
+                file = fopen(disk.ruta.c_str(), "wb");
+            }else{
+                cout << "archivo creado"<<endl;
+            }
             if(megas){
                 for(int i = 0; i < disk.tamanio*1024*1024; i++){
                     char c = '\0';
@@ -703,17 +718,26 @@ void LeerDisco(string ruta){
 
 void crearDirectorios(string ruta){
 
-    int puntero=ruta.find('/');
-    int puntero2=ruta.substr(puntero+1).find('/');
-    string temporal=ruta.substr(puntero,puntero2+1);
+    int largo=ruta.length();
+    int largoTemporal;
+    int status;
+    status = mkdir(ruta.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    string temporal;
+    string rutaTemporal=ruta;
 
-
-    int check;
-    check = mkdir(ruta.c_str(),0777);
-    if (!check)
-        printf("Directory created\n");
-    else {
-        printf("Unable to create directory\n");
-
+    if(status==-1){
+        while(status!=0){
+            temporal = split(rutaTemporal,"/");
+            largoTemporal = temporal.length();
+            temporal=rutaTemporal.substr(0,rutaTemporal.length()-largoTemporal-1);
+            status = mkdir(temporal.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            rutaTemporal=temporal;
+            if(status==0){
+                status = mkdir(ruta.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+                rutaTemporal=ruta;
+            }
+        }
     }
+
+
 }

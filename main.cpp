@@ -72,18 +72,31 @@ MBR LeerDisco(string ruta);
 string split(string s, string del);
 bool Exist(string path);
 void crearDirectorios(string);
+void ejecutar(string);
 
 int main() {
     //mkdisk("mkdisk -s->5 -f->FF -path->\"/home/mis discos/Disco3.dsk\" -u->m");
     //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Gatos/p/g/Disco3.dsk");
     //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco3.dsk");
     //rmdisk("rmdisk -path->/home/luis/Descargas/Disco1.dsk");
-    fdisk("fdisk -s->300 -name->\"Particion123456789023\" -path->/home/luis/Descargas/Gatos/p/g/Disco3.dsk -delete->Full");
+    //fdisk("fdisk -s->300 -name->\"Particion123456789023\" -path->/home/luis/Descargas/Gatos/p/g/Disco3.dsk -delete->Full");
     //fdisk("fdisk -path->/home/Disco1.dsk -s->10 -add->-500 -name->\"Particion1\" -delete->full");
     //mount("mount -path->/home/Disco1.dsk -name->Part2");
     //unmount("unmount -id->061Disco1");
-    //mkfs("mkfs -type->full -id->061Disco1 -fs->2fs");
+    //mkfs("mkfs -type->full -id->061Disco1 -fs->2fs"); exec -path->/home/luis/Descargas/prueba.mia
     //LeerDisco("/home/luis/Descargas/Gatos/p/g/Disco2.dsk");
+    cout <<  "Tarea 2" << endl;
+    cout <<  "Luis Sánchez" << endl;
+    cout <<  "201700339" << endl;
+    string ruta;
+    getline(cin,ruta);
+    int espacio=ruta.find(" ");
+    int largoRuta=ruta.length();
+    string orden=ruta.substr(0,espacio);
+    if(orden=="exec"){
+        string temporal=ruta.substr(espacio+1,largoRuta);
+        ejecutar(ruta.substr(espacio+1,largoRuta));
+    }
 
 
 
@@ -253,7 +266,7 @@ void mkdisk(string linea){
         fwrite(&disco, sizeof(MBR), 1, file);
 
         fclose(file);
-
+        LeerDisco(disk.ruta);
     }
 
 }
@@ -746,6 +759,18 @@ MBR LeerDisco(string ruta){
     MBR aux;
     int bandera=1;
     fread(&aux, sizeof(MBR), 1, file);
+    cout <<  "------------------------" << endl;
+    cout <<  "201700339" << endl;
+    cout <<  "Luis Sańchez" << endl;
+    cout <<  "Tamaño disco" << endl;
+    cout <<  aux.mbr_tamano << endl;
+    cout <<  "Ajuste disco" << endl;
+    cout <<  aux.dsk_fit << endl;
+    cout <<  "ID disco" << endl;
+    cout <<  aux.mbr_dsk_signature << endl;
+    cout <<  "Fecha" << endl;
+    cout <<  aux.mbr_fecha_creacion << endl;
+    cout <<  "---------------------------" << endl;
     fclose(file);
     return aux;
 }
@@ -775,3 +800,21 @@ void crearDirectorios(string ruta){
 
 
 }
+
+void ejecutar(string ruta){
+    int flecha=ruta.find("->");
+    ruta=ruta.substr(flecha+2,ruta.length());
+    string nombreArchivo = ruta;
+    ifstream archivo(nombreArchivo.c_str());
+    string linea;
+    // Obtener línea de archivo, y almacenar contenido en "linea"
+    while (getline(archivo, linea)) {
+        int espacio=linea.find(" ");
+        string temporal=linea.substr(0,espacio);
+        if(temporal=="mkdisk"){
+            string tem=linea.substr(espacio+1);
+            mkdisk(linea);
+        }
+    }
+}
+

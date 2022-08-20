@@ -22,6 +22,15 @@ typedef struct{
 }Partition;
 
 typedef struct{
+    char part_status;
+    char part_fit;
+    int part_start;
+    int part_s;
+    int part_next;
+    char part_name[16];
+}EBR;
+
+typedef struct{
     int mbr_tamano;
     time_t mbr_fecha_creacion ;
     int mbr_dsk_signature;
@@ -76,27 +85,31 @@ void ejecutar(string);
 
 int main() {
     //mkdisk("mkdisk -s->5 -f->FF -path->\"/home/mis discos/Disco3.dsk\" -u->m");
-    //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Gatos/p/g/Disco3.dsk");
+    //mkdisk("mkdisk -s->10 -f->BF -u->m -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk");
     //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco3.dsk");
     //rmdisk("rmdisk -path->/home/luis/Descargas/Disco1.dsk");
-    //fdisk("fdisk -s->300 -name->\"Particion123456789023\" -path->/home/luis/Descargas/Gatos/p/g/Disco3.dsk -delete->Full");
+    fdisk("fdisk -s->300 -t->e -name->\"Particion6\" -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk -delete->Full");
+    //fdisk("fdisk -s->400 -name->\"Particion2\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
+    //fdisk("fdisk -s->500 -name->\"Particion3\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
+    //fdisk("fdisk -s->600 -name->\"Particion4\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
     //fdisk("fdisk -path->/home/Disco1.dsk -s->10 -add->-500 -name->\"Particion1\" -delete->full");
     //mount("mount -path->/home/Disco1.dsk -name->Part2");
     //unmount("unmount -id->061Disco1");
     //mkfs("mkfs -type->full -id->061Disco1 -fs->2fs"); exec -path->/home/luis/Descargas/prueba.mia
     //LeerDisco("/home/luis/Descargas/Gatos/p/g/Disco2.dsk");
-    cout <<  "Tarea 2" << endl;
-    cout <<  "Luis Sánchez" << endl;
-    cout <<  "201700339" << endl;
-    string ruta;
-    getline(cin,ruta);
-    int espacio=ruta.find(" ");
-    int largoRuta=ruta.length();
-    string orden=ruta.substr(0,espacio);
-    if(orden=="exec"){
-        string temporal=ruta.substr(espacio+1,largoRuta);
-        ejecutar(ruta.substr(espacio+1,largoRuta));
-    }
+    //cout <<  "Proyecto 1" << endl;
+    //cout <<  "Luis Sánchez" << endl;
+    //cout <<  "201700339" << endl;
+    //cout <<  "Ingrese Comando" << endl;
+    //string ruta;
+    //getline(cin,ruta);
+    //int espacio=ruta.find(" ");
+    //int largoRuta=ruta.length();
+    //string orden=ruta.substr(0,espacio);
+    //if(orden=="exec"){
+    //    string temporal=ruta.substr(espacio+1,largoRuta);
+    //    ejecutar(ruta.substr(espacio+1,largoRuta));
+    // }
 
 
 
@@ -253,16 +266,14 @@ void mkdisk(string linea){
         MBR aux;
         fseek(file, 0, SEEK_SET);
         int contador=0;
-        while(existe==1){
-            fread(&aux, sizeof(MBR), 1, file);
-            if (aux.mbr_dsk_signature==0){
-                existe=0;
-            }
-            contador++;
-        }
-        fseek(file, ftell(file)-sizeof(MBR), SEEK_SET);
-
-
+        //while(existe==1){
+        //    fread(&aux, sizeof(MBR), 1, file);
+        //    if (aux.mbr_dsk_signature==0){
+        //        existe=0;
+        //    }
+        //    contador++;
+        //}
+        //fseek(file, ftell(file)-sizeof(MBR), SEEK_SET);
         fwrite(&disco, sizeof(MBR), 1, file);
 
         fclose(file);
@@ -420,6 +431,7 @@ void fdisk(string linea){
     if(strcmp(limpio.c_str(),u.c_str())==0){
         cout <<  "No esta el parametro u" << endl;
         part.unidades="k";
+        part.tamanio=part.tamanio*1024;
     }else{
         int end = u.find(" ");
         cout <<  "La unidad es" << endl;
@@ -430,8 +442,10 @@ void fdisk(string linea){
         if(strcmp(part.unidades.c_str(),m.c_str())==0){
             //cout <<  "El ajuste BF" << endl;
             //megas=true;
+            part.tamanio=part.tamanio*1024*1024;
         }else if(strcmp(part.unidades.c_str(),k.c_str())==0){
             //cout <<  "El ajuste FF" << endl;
+            part.tamanio=part.tamanio*1024;
         }else if(strcmp(part.unidades.c_str(),b.c_str())==0){
             //cout <<  "El ajuste FF" << endl;
         }else{
@@ -576,12 +590,58 @@ void fdisk(string linea){
     if(Exist(part.ruta)){
         if(crear){
             MBR discoAux=LeerDisco(part.ruta);
-            discoAux.mbr_partition_1.part_status='n';
-            discoAux.mbr_partition_1.part_type=part.tipo.c_str()[0];
-            discoAux.mbr_partition_1.part_fit=part.ajuste.c_str()[0];
-            discoAux.mbr_partition_1.part_start=0;
-            discoAux.mbr_partition_1.part_s=part.tamanio;
-            strcpy(discoAux.mbr_partition_1.part_name, part.name.substr(0,15).c_str());
+            int tamParticiones=discoAux.mbr_partition_1.part_s+discoAux.mbr_partition_2.part_s+discoAux.mbr_partition_3.part_s+discoAux.mbr_partition_4.part_s;
+            if(tamParticiones+part.tamanio>discoAux.mbr_tamano){
+                cout <<  "Tamaño no valida se desborda" << endl;
+                return;
+            }
+            if (part.tipo=="e"){
+                if (discoAux.mbr_partition_1.part_type=='e'||discoAux.mbr_partition_2.part_type=='e'||discoAux.mbr_partition_3.part_type=='e'||discoAux.mbr_partition_4.part_type=='e'){
+                    cout <<  "Ya existe una partición extendida" << endl;
+                    return;
+                }
+            }
+            if(part.tipo=="l"){
+                if (discoAux.mbr_partition_1.part_type=='e'||discoAux.mbr_partition_2.part_type=='e'||discoAux.mbr_partition_3.part_type=='e'||discoAux.mbr_partition_4.part_type=='e'){
+
+                }else{
+                    cout <<  "No existe particón logica" << endl;
+                    return;
+                }
+            }
+            if(discoAux.mbr_partition_1.part_s==0){
+                discoAux.mbr_partition_1.part_status='n';
+                discoAux.mbr_partition_1.part_type=part.tipo.c_str()[0];
+                discoAux.mbr_partition_1.part_fit=part.ajuste.c_str()[0];
+                discoAux.mbr_partition_1.part_start=0;
+                discoAux.mbr_partition_1.part_s=part.tamanio;
+                strcpy(discoAux.mbr_partition_1.part_name, part.name.substr(0,15).c_str());
+            }else if(discoAux.mbr_partition_2.part_s==0){
+                discoAux.mbr_partition_2.part_status='n';
+                discoAux.mbr_partition_2.part_type=part.tipo.c_str()[0];
+                discoAux.mbr_partition_2.part_fit=part.ajuste.c_str()[0];
+                discoAux.mbr_partition_2.part_start=0;
+                discoAux.mbr_partition_2.part_s=part.tamanio;
+                strcpy(discoAux.mbr_partition_2.part_name, part.name.substr(0,15).c_str());
+            }else if(discoAux.mbr_partition_3.part_s==0){
+                discoAux.mbr_partition_3.part_status='n';
+                discoAux.mbr_partition_3.part_type=part.tipo.c_str()[0];
+                discoAux.mbr_partition_3.part_fit=part.ajuste.c_str()[0];
+                discoAux.mbr_partition_3.part_start=0;
+                discoAux.mbr_partition_3.part_s=part.tamanio;
+                strcpy(discoAux.mbr_partition_3.part_name, part.name.substr(0,15).c_str());
+            }else if(discoAux.mbr_partition_4.part_s==0){
+                discoAux.mbr_partition_4.part_status='n';
+                discoAux.mbr_partition_4.part_type=part.tipo.c_str()[0];
+                discoAux.mbr_partition_4.part_fit=part.ajuste.c_str()[0];
+                discoAux.mbr_partition_4.part_start=0;
+                discoAux.mbr_partition_4.part_s=part.tamanio;
+                strcpy(discoAux.mbr_partition_4.part_name, part.name.substr(0,15).c_str());
+            }else{
+                cout <<  "Particiones llenas" << endl;
+                return;
+            }
+
 
 
             FILE *file;
@@ -769,7 +829,7 @@ MBR LeerDisco(string ruta){
     cout <<  "ID disco" << endl;
     cout <<  aux.mbr_dsk_signature << endl;
     cout <<  "Fecha" << endl;
-    cout <<  aux.mbr_fecha_creacion << endl;
+    cout <<  asctime(std::localtime(&aux.mbr_fecha_creacion)) << endl;
     cout <<  "---------------------------" << endl;
     fclose(file);
     return aux;
@@ -818,3 +878,36 @@ void ejecutar(string ruta){
     }
 }
 
+EBR LeerParticionLogica(string ruta){
+    int inicio=sizeof(MBR);
+    FILE *file;
+    file = fopen(ruta.c_str(), "rb");
+
+    fseek(file, inicio, SEEK_SET);
+    int existe=1;
+    EBR aux;
+    while(existe==1){
+        fread(&aux, sizeof(EBR), 1, file);
+        if (aux.part_status=='0'){
+            existe=0;
+            fclose(file);
+            return aux;
+        }
+        cout <<  "------------------------" << endl;
+        cout <<  "Tamaño particion" << endl;
+        cout <<  aux.part_s << endl;
+        cout <<  "Ajuste particion" << endl;
+        cout <<  aux.part_fit << endl;
+        cout <<  "Nombre particion" << endl;
+        cout <<  aux.part_name << endl;
+        cout <<  "Inicio" << endl;
+        cout <<  aux.part_start << endl;
+        cout <<  "Status" << endl;
+        cout <<  aux.part_status<< endl;
+        cout <<  "Next" << endl;
+        cout <<  aux.part_next<< endl;
+        cout <<  "---------------------------" << endl;
+    }
+    fclose(file);
+    return aux;
+}

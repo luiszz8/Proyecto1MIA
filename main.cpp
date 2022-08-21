@@ -82,13 +82,14 @@ string split(string s, string del);
 bool Exist(string path);
 void crearDirectorios(string);
 void ejecutar(string);
+int LeerParticionLogica(string ruta);
 
 int main() {
     //mkdisk("mkdisk -s->5 -f->FF -path->\"/home/mis discos/Disco3.dsk\" -u->m");
     //mkdisk("mkdisk -s->10 -f->BF -u->m -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk");
     //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco3.dsk");
     //rmdisk("rmdisk -path->/home/luis/Descargas/Disco1.dsk");
-    fdisk("fdisk -s->300 -t->e -name->\"Particion6\" -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk -delete->Full");
+    fdisk("fdisk -add->300 -t->l -name->\"Particion6\" -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk -delete->Full");
     //fdisk("fdisk -s->400 -name->\"Particion2\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
     //fdisk("fdisk -s->500 -name->\"Particion3\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
     //fdisk("fdisk -s->600 -name->\"Particion4\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
@@ -603,9 +604,24 @@ void fdisk(string linea){
             }
             if(part.tipo=="l"){
                 if (discoAux.mbr_partition_1.part_type=='e'||discoAux.mbr_partition_2.part_type=='e'||discoAux.mbr_partition_3.part_type=='e'||discoAux.mbr_partition_4.part_type=='e'){
+                    int posicion=LeerParticionLogica(part.ruta);
+                    FILE *file;
+                    EBR logica;
+                    logica.part_s=part.tamanio;
+                    logica.part_status='n';
+                    logica.part_next=-1;
+                    logica.part_start=posicion;
+                    strcpy(logica.part_name, part.name.substr(1,16).c_str());
+                    logica.part_fit=part.ajuste.c_str()[0];
+                    file = fopen(part.ruta.c_str(), "rb+");
+                    fseek(file, posicion, SEEK_SET);
+                    fwrite(&logica, sizeof(EBR), 1, file);
 
+                    fclose(file);
+                    cout <<  "Se creo particion logica" << endl;
+                    return;
                 }else{
-                    cout <<  "No existe particón logica" << endl;
+                    cout <<  "No existe particón extendida" << endl;
                     return;
                 }
             }
@@ -613,7 +629,10 @@ void fdisk(string linea){
                 discoAux.mbr_partition_1.part_status='n';
                 discoAux.mbr_partition_1.part_type=part.tipo.c_str()[0];
                 discoAux.mbr_partition_1.part_fit=part.ajuste.c_str()[0];
-                discoAux.mbr_partition_1.part_start=0;
+                if(discoAux.mbr_partition_2.part_s+discoAux.mbr_partition_3.part_s+discoAux.mbr_partition_4.part_s==0){
+                    discoAux.mbr_partition_1.part_start=0;
+                }//else if()
+
                 discoAux.mbr_partition_1.part_s=part.tamanio;
                 strcpy(discoAux.mbr_partition_1.part_name, part.name.substr(0,15).c_str());
             }else if(discoAux.mbr_partition_2.part_s==0){
@@ -665,6 +684,51 @@ void fdisk(string linea){
             fwrite(&discoAux, sizeof(MBR), 1, file);
 
             fclose(file);
+        }else if(agregar){
+            MBR discoAux=LeerDisco(part.ruta);
+            if(discoAux.mbr_partition_1.part_name==part.name){
+                if(part.add<0){
+                    if(discoAux.mbr_partition_1.part_s>(part.add*-1)){
+                        discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+                    }else{
+                        cout <<  "Supera tamaño para quitar" << endl;
+                        return;
+                    }
+                }
+                if(part.add>0&&discoAux.mbr_partition_2.part_s==0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s==0){
+                    if(discoAux.mbr_tamano>discoAux.mbr_partition_1.part_s+part.add){
+                        discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+                        cout <<  "Se agrego espacio" << endl;
+                        return;
+                    }else{
+                        cout <<  "Supera tamaño de disco" << endl;
+                        return;
+                    }
+                }else if(part.add<0&&discoAux.mbr_partition_2.part_s==0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s==0){
+                    if(discoAux.mbr_partition_1.part_s>(part.add*-1)){
+                        discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+                    }else{
+                        cout <<  "Supera tamaño para quitar" << endl;
+                        return;
+                    }
+                }
+                bool discoSiguiente=false;
+                int inicioDisco=0;
+                if(discoAux.mbr_partition_2.part_s!=0){
+                    discoSiguiente=true;
+                    inicioDisco=discoAux.mbr_partition_2.part_start;
+                } else if(discoAux.mbr_partition_3.part_s!=0){
+                    discoSiguiente=true;
+                    inicioDisco=discoAux.mbr_partition_3.part_start;
+                }else if(discoAux.mbr_partition_4.part_s!=0){
+                    discoSiguiente=true;
+                    inicioDisco=discoAux.mbr_partition_4.part_start;
+                }
+
+                if(part.add>0 && discoAux.mbr_partition_1.part_s+part.add<inicioDisco){
+                    discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+                }
+            }
         }
     }else{
         cout <<  "El disco no existe" << endl;
@@ -878,20 +942,22 @@ void ejecutar(string ruta){
     }
 }
 
-EBR LeerParticionLogica(string ruta){
+int LeerParticionLogica(string ruta){
     int inicio=sizeof(MBR);
     FILE *file;
     file = fopen(ruta.c_str(), "rb");
 
     fseek(file, inicio, SEEK_SET);
     int existe=1;
+    int posicion=0;
     EBR aux;
     while(existe==1){
         fread(&aux, sizeof(EBR), 1, file);
-        if (aux.part_status=='0'){
+        if (aux.part_s==0){
             existe=0;
+            posicion=ftell(file)-sizeof(EBR);
             fclose(file);
-            return aux;
+            return posicion;
         }
         cout <<  "------------------------" << endl;
         cout <<  "Tamaño particion" << endl;
@@ -909,5 +975,163 @@ EBR LeerParticionLogica(string ruta){
         cout <<  "---------------------------" << endl;
     }
     fclose(file);
-    return aux;
+    return posicion;
+}
+
+void funcionAdd(Particion part){
+    MBR discoAux=LeerDisco(part.ruta);
+    //Disco 1
+    if(discoAux.mbr_partition_1.part_name==part.name){
+        if(part.add<0){
+            if(discoAux.mbr_partition_1.part_s>(part.add*-1)){
+                discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+        if(part.add>0&&discoAux.mbr_partition_2.part_s==0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s==0){
+            if(discoAux.mbr_tamano>discoAux.mbr_partition_1.part_s+part.add){
+                discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+                cout <<  "Se agrego espacio" << endl;
+                return;
+            }else{
+                cout <<  "Supera tamaño de disco" << endl;
+                return;
+            }
+        }else if(part.add<0&&discoAux.mbr_partition_2.part_s==0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s==0){
+            if(discoAux.mbr_partition_1.part_s>(part.add*-1)){
+                discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+        bool discoSiguiente=false;
+        int inicioDisco=0;
+        if(discoAux.mbr_partition_2.part_s!=0){
+            discoSiguiente=true;
+            inicioDisco=discoAux.mbr_partition_2.part_start;
+        } else if(discoAux.mbr_partition_3.part_s!=0){
+            discoSiguiente=true;
+            inicioDisco=discoAux.mbr_partition_3.part_start;
+        }else if(discoAux.mbr_partition_4.part_s!=0){
+            discoSiguiente=true;
+            inicioDisco=discoAux.mbr_partition_4.part_start;
+        }
+
+        if(part.add>0 && discoAux.mbr_partition_1.part_s+part.add<inicioDisco){
+            discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+        }
+    }
+
+    //Disco 2
+    if(discoAux.mbr_partition_2.part_name==part.name){
+        if(part.add<0){
+            if(discoAux.mbr_partition_2.part_s>(part.add*-1)){
+                discoAux.mbr_partition_2.part_s=discoAux.mbr_partition_2.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+        if(part.add>0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s){
+            if(discoAux.mbr_tamano>discoAux.mbr_partition_2.part_s+part.add){
+                discoAux.mbr_partition_2.part_s=discoAux.mbr_partition_2.part_s+part.add;
+                cout <<  "Se agrego espacio" << endl;
+                return;
+            }else{
+                cout <<  "Supera tamaño de disco" << endl;
+                return;
+            }
+        }else if(part.add<0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s){
+            if(discoAux.mbr_partition_2.part_s>(part.add*-1)){
+                discoAux.mbr_partition_2.part_s=discoAux.mbr_partition_2.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+        bool discoSiguiente=false;
+        int inicioDisco=0;
+        if(discoAux.mbr_partition_3.part_s!=0){
+            discoSiguiente=true;
+            inicioDisco=discoAux.mbr_partition_3.part_start;
+        }else if(discoAux.mbr_partition_4.part_s!=0){
+            discoSiguiente=true;
+            inicioDisco=discoAux.mbr_partition_4.part_start;
+        }
+
+        if(part.add>0 && discoAux.mbr_partition_2.part_s+part.add<inicioDisco){
+            discoAux.mbr_partition_2.part_s=discoAux.mbr_partition_2.part_s+part.add;
+        }
+    }
+
+    //Disco 3
+    if(discoAux.mbr_partition_3.part_name==part.name){
+        if(part.add<0){
+            if(discoAux.mbr_partition_3.part_s>(part.add*-1)){
+                discoAux.mbr_partition_3.part_s=discoAux.mbr_partition_3.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+        if(part.add>0&&discoAux.mbr_partition_4.part_s){
+            if(discoAux.mbr_tamano>discoAux.mbr_partition_3.part_s+part.add){
+                discoAux.mbr_partition_3.part_s=discoAux.mbr_partition_3.part_s+part.add;
+                cout <<  "Se agrego espacio" << endl;
+                return;
+            }else{
+                cout <<  "Supera tamaño de disco" << endl;
+                return;
+            }
+        }else if(part.add<0&&discoAux.mbr_partition_4.part_s){
+            if(discoAux.mbr_partition_3.part_s>(part.add*-1)){
+                discoAux.mbr_partition_3.part_s=discoAux.mbr_partition_3.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+        bool discoSiguiente=false;
+        int inicioDisco=0;
+        if(discoAux.mbr_partition_4.part_s!=0){
+            discoSiguiente=true;
+            inicioDisco=discoAux.mbr_partition_4.part_start;
+        }
+
+        if(part.add>0 && discoAux.mbr_partition_3.part_s+part.add<inicioDisco){
+            discoAux.mbr_partition_3.part_s=discoAux.mbr_partition_3.part_s+part.add;
+        }
+    }
+
+    //Disco 4
+    if(discoAux.mbr_partition_4.part_name==part.name){
+        if(part.add<0){
+            if(discoAux.mbr_partition_4.part_s>(part.add*-1)){
+                discoAux.mbr_partition_4.part_s=discoAux.mbr_partition_4.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+        if(part.add>0){
+            if(discoAux.mbr_tamano>discoAux.mbr_partition_4.part_s+part.add){
+                discoAux.mbr_partition_4.part_s=discoAux.mbr_partition_4.part_s+part.add;
+                cout <<  "Se agrego espacio" << endl;
+                return;
+            }else{
+                cout <<  "Supera tamaño de disco" << endl;
+                return;
+            }
+        }else if(part.add<0){
+            if(discoAux.mbr_partition_4.part_s>(part.add*-1)){
+                discoAux.mbr_partition_4.part_s=discoAux.mbr_partition_4.part_s+part.add;
+            }else{
+                cout <<  "Supera tamaño para quitar" << endl;
+                return;
+            }
+        }
+    }
 }

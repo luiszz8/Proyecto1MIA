@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+
 using namespace std;
 
 typedef struct{
@@ -84,40 +85,9 @@ void crearDirectorios(string);
 void ejecutar(string);
 int LeerParticionLogica(string ruta);
 
-int main() {
-    //mkdisk("mkdisk -s->5 -f->FF -path->\"/home/mis discos/Disco3.dsk\" -u->m");
-    //mkdisk("mkdisk -s->10 -f->BF -u->m -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk");
-    //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco3.dsk");
-    //rmdisk("rmdisk -path->/home/luis/Descargas/Disco1.dsk");
-    fdisk("fdisk -add->300 -t->l -name->\"Particion6\" -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk -delete->Full");
-    //fdisk("fdisk -s->400 -name->\"Particion2\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
-    //fdisk("fdisk -s->500 -name->\"Particion3\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
-    //fdisk("fdisk -s->600 -name->\"Particion4\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
-    //fdisk("fdisk -path->/home/Disco1.dsk -s->10 -add->-500 -name->\"Particion1\" -delete->full");
-    //mount("mount -path->/home/Disco1.dsk -name->Part2");
-    //unmount("unmount -id->061Disco1");
-    //mkfs("mkfs -type->full -id->061Disco1 -fs->2fs"); exec -path->/home/luis/Descargas/prueba.mia
-    //LeerDisco("/home/luis/Descargas/Gatos/p/g/Disco2.dsk");
-    //cout <<  "Proyecto 1" << endl;
-    //cout <<  "Luis Sánchez" << endl;
-    //cout <<  "201700339" << endl;
-    //cout <<  "Ingrese Comando" << endl;
-    //string ruta;
-    //getline(cin,ruta);
-    //int espacio=ruta.find(" ");
-    //int largoRuta=ruta.length();
-    //string orden=ruta.substr(0,espacio);
-    //if(orden=="exec"){
-    //    string temporal=ruta.substr(espacio+1,largoRuta);
-    //    ejecutar(ruta.substr(espacio+1,largoRuta));
-    // }
+class ListaGenericaOrdenada;
+ListaGenericaOrdenada *lista;
 
-
-
-
-
-    return 0;
-}
 
 void mkdisk(string linea){
     MkDiskEstruc disk;
@@ -772,6 +742,7 @@ void mount(string linea){
     string name=split(limpio,"-name");
     if(strcmp(limpio.c_str(),name.c_str())==0){
         cout <<  "No esta el parametro name" << endl;
+        return;
         //part.name='F';
     }else{
         int end = name.find(" ");
@@ -796,6 +767,37 @@ void mount(string linea){
         cout <<  "La name es" << endl;
         cout <<  part.name << endl;
     }
+    string carnet="39";
+    string numPart="0";
+    MBR auxDisco=LeerDisco(part.ruta);
+    string  nombreDico= split(part.ruta,"/");
+    int punto=nombreDico.find(".");
+    nombreDico=nombreDico.substr(0,punto);
+    if(auxDisco.mbr_partition_1.part_name==part.name){
+        auxDisco.mbr_partition_1.part_status='s';
+        numPart="1";
+    }else if(auxDisco.mbr_partition_2.part_name==part.name){
+        auxDisco.mbr_partition_2.part_status='s';
+        numPart="2";
+    }else if(auxDisco.mbr_partition_3.part_name==part.name){
+        auxDisco.mbr_partition_3.part_status='s';
+        numPart="3";
+    }else if(auxDisco.mbr_partition_4.part_name==part.name){
+        auxDisco.mbr_partition_4.part_status='s';
+        numPart="4";
+    }
+
+    FILE *file;
+    file = fopen(part.ruta.c_str(), "rb+");
+    int posicion=0;
+    int existe=1;
+    bool primero=false;
+    //MBR aux;
+    fseek(file, 0, SEEK_SET);
+    fwrite(&auxDisco, sizeof(MBR), 1, file);
+    fclose(file);
+    cout <<  "#"+carnet+numPart+nombreDico << endl;
+
 }
 
 void unmount(string linea){
@@ -1134,4 +1136,130 @@ void funcionAdd(Particion part){
             }
         }
     }
+}
+
+class ListaGenericaOrdenada {
+private:
+    class Nodo {
+    public:
+        int info;
+        string ruta;
+        string nombre;
+        Nodo *sig;
+    };
+
+    Nodo *raiz;
+public:
+    ListaGenericaOrdenada();
+    ~ListaGenericaOrdenada();
+    void insertar(int x);
+    void imprimir();
+};
+
+ListaGenericaOrdenada::ListaGenericaOrdenada()
+{
+    raiz = NULL;
+}
+
+ListaGenericaOrdenada::~ListaGenericaOrdenada()
+{
+    Nodo *reco = raiz;
+    Nodo *bor;
+    while (reco != NULL)
+    {
+        bor = reco;
+        reco = reco->sig;
+        delete bor;
+    }
+}
+
+void ListaGenericaOrdenada::insertar(int x)
+{
+    Nodo *nuevo = new Nodo();
+    nuevo->info = x;
+    if (raiz == NULL)
+    {
+        raiz = nuevo;
+    }
+    else
+    {
+        if (x<raiz->info)
+        {
+            nuevo->sig = raiz;
+            raiz = nuevo;
+        }
+        else
+        {
+            Nodo *reco = raiz;
+            Nodo *atras = raiz;
+            while (x >= reco->info && reco->sig != NULL)
+            {
+                atras = reco;
+                reco = reco->sig;
+            }
+            if (x >= reco->info)
+            {
+                reco->sig = nuevo;
+            }
+            else
+            {
+                nuevo->sig = reco;
+                atras->sig = nuevo;
+            }
+        }
+    }
+}
+
+void ListaGenericaOrdenada::imprimir()
+{
+    Nodo *reco = raiz;
+    cout << "Listado completo.\n";
+    while (reco != NULL)
+    {
+        cout << reco->info << "-";
+        reco = reco->sig;
+    }
+    cout << "\n";
+}
+
+int main() {
+    //mkdisk("mkdisk -s->5 -f->FF -path->\"/home/mis discos/Disco3.dsk\" -u->m");
+    //mkdisk("mkdisk -s->10 -f->BF -u->m -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk");
+    //mkdisk("mkdisk -s->30 -f->BF -u->k -path->/home/luis/Descargas/Disco3.dsk");
+    //rmdisk("rmdisk -path->/home/luis/Descargas/Disco1.dsk");
+    //fdisk("fdisk -add->300 -t->l -name->\"Particion6\" -path->/home/luis/Descargas/Gatos/p/g/Disco11.dsk -delete->Full");
+    //fdisk("fdisk -s->400 -name->\"Particion2\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
+    //fdisk("fdisk -s->500 -name->\"Particion3\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
+    //fdisk("fdisk -s->600 -name->\"Particion4\" -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -delete->Full");
+    //fdisk("fdisk -path->/home/Disco1.dsk -s->10 -add->-500 -name->\"Particion1\" -delete->full");
+    //mount("mount -path->/home/luis/Descargas/Gatos/p/g/Disco10.dsk -name->Particion1");
+    //unmount("unmount -id->061Disco1");
+    //mkfs("mkfs -type->full -id->061Disco1 -fs->2fs"); exec -path->/home/luis/Descargas/prueba.mia
+    //LeerDisco("/home/luis/Descargas/Gatos/p/g/Disco2.dsk");
+    //cout <<  "Proyecto 1" << endl;
+    //cout <<  "Luis Sánchez" << endl;
+    //cout <<  "201700339" << endl;
+    //cout <<  "Ingrese Comando" << endl;
+    //string ruta;
+    //getline(cin,ruta);
+    //int espacio=ruta.find(" ");
+    //int largoRuta=ruta.length();
+    //string orden=ruta.substr(0,espacio);
+    //if(orden=="exec"){
+    //    string temporal=ruta.substr(espacio+1,largoRuta);
+    //    ejecutar(ruta.substr(espacio+1,largoRuta));
+    // }
+
+
+
+    lista= new ListaGenericaOrdenada();
+    lista->insertar(10);
+    lista->insertar(5);
+    lista->insertar(7);
+    lista->insertar(50);
+    lista->imprimir();
+    delete lista;
+
+
+    return 0;
 }

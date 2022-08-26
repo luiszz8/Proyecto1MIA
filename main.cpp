@@ -1,5 +1,6 @@
 #include <iostream>
 #include "fstream"
+#include <vector>
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
@@ -84,6 +85,7 @@ bool Exist(string path);
 void crearDirectorios(string);
 void ejecutar(string);
 int LeerParticionLogica(string ruta);
+void ReporteDisco(vector<string>);
 
 class ListaGenericaOrdenada;
 ListaGenericaOrdenada *lista;
@@ -1250,16 +1252,36 @@ int main() {
     //    ejecutar(ruta.substr(espacio+1,largoRuta));
     // }
 
+    //system("dot -Tpng /home/luis/Descargas/Reportes/prueba.dot -o /home/luis/Descargas/Reportes/prueba.png");
+    vector<string> nombres;
+    nombres.push_back("particion 1");
+    nombres.push_back("particion 2");
+    nombres.push_back("particion 3");
+    ReporteDisco(nombres);
 
 
-    lista= new ListaGenericaOrdenada();
-    lista->insertar(10);
-    lista->insertar(5);
-    lista->insertar(7);
-    lista->insertar(50);
-    lista->imprimir();
-    delete lista;
 
 
     return 0;
+}
+
+void ReporteDisco(vector<string> nombre){
+    ofstream file;
+    file.open("/home/luis/Descargas/Reportes/prueba2.dot");
+    file << "digraph R {\n"
+            "  rankdir=LR\n"
+            "  node3 [shape=record, label=\"{ ";
+
+
+    for (int i = 0; i < nombre.size(); ++i) {
+        file << nombre[i];
+        if(i!=nombre.size()-1){
+            file << "|";
+        }
+
+    }
+    file << "}\"]";
+    file << "}";
+    file.close();
+    system("dot -Tpng /home/luis/Descargas/Reportes/prueba2.dot -o /home/luis/Descargas/Reportes/prueba2.png");
 }

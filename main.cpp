@@ -695,7 +695,7 @@ void fdisk(string linea){
             part.ajuste=f.substr(2, end-2);
             string bf="bestfit";
             string ff="firstfit";
-            string wf="worstFit";
+            string wf="worstfit";
             if(strcmp(f.substr(2, end-2).c_str(),bf.c_str())==0){
                 //cout <<  "El ajuste BF" << endl;
                 part.ajuste="b";
@@ -720,7 +720,7 @@ void fdisk(string linea){
         }else{
             int end = eliminar.find(" ");
             //disk.ajuste=f.substr(2, end-2);
-            string completo="Full";
+            string completo="full";
             if(strcmp(eliminar.substr(2, end-2).c_str(),completo.c_str())==0){
                 //cout <<  "El ajuste BF" << endl;
                 part.borrar=true;
@@ -1090,6 +1090,44 @@ void fdisk(string linea){
                 //MBR aux;
                 fseek(file, 0, SEEK_SET);
                 fwrite(&discoAux, sizeof(MBR), 1, file);
+            }else if(eliminarB){
+                cout <<  "Desea Eliminar S/N " << endl;
+                string seguro;
+                getline(cin,seguro);
+                if(seguro=="N"){
+                    return;
+                }
+                MBR discoAux=LeerDisco(part.ruta);
+
+                if(discoAux.mbr_partition_1.part_name==name){
+                    discoAux.mbr_partition_1=discoAux.mbr_partition_2;
+                    discoAux.mbr_partition_2=discoAux.mbr_partition_3;
+                    discoAux.mbr_partition_3=discoAux.mbr_partition_4;
+                    discoAux.mbr_partition_4=Partition ();
+                }
+                if(discoAux.mbr_partition_2.part_name==name){
+                    discoAux.mbr_partition_2=discoAux.mbr_partition_3;
+                    discoAux.mbr_partition_3=discoAux.mbr_partition_4;
+                    discoAux.mbr_partition_4=Partition ();
+                }
+                if(discoAux.mbr_partition_3.part_name==name){
+                    discoAux.mbr_partition_3=discoAux.mbr_partition_4;
+                    discoAux.mbr_partition_4=Partition ();
+                }
+                if(discoAux.mbr_partition_4.part_name==name){
+                    discoAux.mbr_partition_4=Partition ();
+                }
+
+                FILE *file;
+                file = fopen(part.ruta.c_str(), "rb+");
+                int posicion=0;
+                int existe=1;
+                bool primero=false;
+                //MBR aux;
+                fseek(file, 0, SEEK_SET);
+                fwrite(&discoAux, sizeof(MBR), 1, file);
+                fclose(file);
+                cout <<  "Partición Eliminada" << endl;
             }
         }else{
             cout <<  "El disco no existe" << endl;
@@ -1588,7 +1626,7 @@ int main() {
 
 
     //mkdir("mkdir -path->/home");
-    //mkdir("mkdir –p -path->/home/fern/hacks");
+
 
     //unmount("unmount -id->061Disco1");
 
@@ -2381,319 +2419,6 @@ void updatebm(SuperBloque spr, string pth, string t) {
     fclose(file);
 }
 
-void mkdir(string linea){
-    MkDiskEstruc disk;
-    MBR disco;
-    size_t pos = linea.find(" ");
-    string limpio = linea.substr (pos+1);
-    //ruta
-    string ruta=split(limpio,"-path");
-    if(strcmp(limpio.c_str(),ruta.c_str())==0){
-        cout <<  "El parametro path es obligatorio" << endl;
-    }else {
-        int end = ruta.find(" ");
-        string comillas = ruta.substr(2, end - 2);
-        string comilla = "\"";
-        //cout <<  ruta.substr(2, 1) << endl;
-        //cout <<  comilla << endl;
-        if (strcmp(ruta.substr(2, 1).c_str(), comilla.c_str()) == 0) {
-            cout << "Tiene Comillas" << endl;
-            int tamanio = ruta.length();
-            int lugarFin = ruta.substr(3, tamanio).find(comilla);
-            string rutaNueva = ruta.substr(3, lugarFin);
-            //cout <<  rutaNueva << endl;
-            //cout <<  lugarFin << endl;
-            ruta = rutaNueva;
-        } else {
-            cout << "No tiene Comillas" << endl;
-            //cout <<  ruta.substr(2, end-2) << endl;
-            ruta = ruta.substr(2, end - 2);
-        }
-        disk.ruta = ruta;
-        cout << "La ruta es" << endl;
-        cout << disk.ruta << endl;
-
-    }
-    vector<string> rutas = getpath(ruta);
-    int padre;
-    padre = linea.find("–p");
-    SuperBloque spr;
-    Inodo inode;
-    CarpetaBloque folder;
-    BloquePuntero pointer;
-    PartitionMontada auxMontada=userActive.actual;
-
-    FILE *bfile = fopen(auxMontada.ruta.c_str(), "rb+");
-
-    fseek(bfile, auxMontada.particion.part_start, SEEK_SET);
-    fread(&spr, sizeof(SuperBloque), 1, bfile);
-
-    fseek(bfile, spr.s_inode_start, SEEK_SET);
-    fread(&inode, sizeof(Inodo), 1, bfile);
-
-    string newf;
-
-    int past;
-    int bi;
-    int bb;
-    bool fnd = false;
-    Inodo inodetmp;
-    CarpetaBloque foldertmp;
-
-    newf = rutas.back();
-    int father = 0;
-    rutas.pop_back();
-    string stack;
-    for (int v = 0; v < rutas.size(); ++v) {
-        fnd = false;
-        for (int i = 0; i < 15; ++i) {
-            if (i < 12) {
-                if (inode.i_block[i] != -1) {
-                    folder = CarpetaBloque ();
-                    fseek(bfile, spr.s_block_start + (sizeof(CarpetaBloque) * inode.i_block[i]), SEEK_SET);
-                    fread(&folder, sizeof(CarpetaBloque), 1, bfile);
-                    for (int j = 0; j < 4; j++) {
-                        if (folder.b_content[j].b_name==rutas.at(v)) {
-                            fnd = true;
-                            father = folder.b_content[j].b_inodo;
-                            inode = Inodo ();
-                            fseek(bfile,
-                                  spr.s_inode_start + (sizeof(Inodo) * folder.b_content[j].b_inodo),
-                                  SEEK_SET);
-                            fread(&inode, sizeof(Inodo), 1, bfile);
-                            break;
-                        }
-                    }
-                } else {
-                    break;
-                }
-            } else if (i == 12) {
-                if (inode.i_block[i] != -1) {
-                    pointer = BloquePuntero() ;
-                    fseek(bfile, spr.s_block_start + (sizeof(BloquePuntero) * inode.i_block[i]), SEEK_SET);
-                    fread(&pointer, sizeof(BloquePuntero), 1, bfile);
-
-                    for (int b_pointer : pointer.b_pointers) {
-                        if (b_pointer != -1) {
-                            folder = CarpetaBloque ();
-                            fseek(bfile, spr.s_block_start + (sizeof(CarpetaBloque) * b_pointer),
-                                  SEEK_SET);
-                            fread(&folder, sizeof(CarpetaBloque), 1, bfile);
-                            for (auto &j : folder.b_content) {
-                                if (j.b_name==rutas.at(v)) {
-                                    fnd = true;
-                                    father = j.b_inodo;
-                                    inode = Inodo();
-                                    fseek(bfile,
-                                          spr.s_inode_start + (sizeof(Inodo) * j.b_inodo),
-                                          SEEK_SET);
-                                    fread(&inode, sizeof(Inodo), 1, bfile);
-                                    break;
-                                }
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                } else {
-                    break;
-                }
-            } else if (i == 13) {
-                if (inode.i_block[i] != -1) {
-                    pointer = BloquePuntero ();
-                    fseek(bfile, spr.s_block_start + (sizeof(BloquePuntero) * inode.i_block[i]), SEEK_SET);
-                    fread(&pointer, sizeof(BloquePuntero), 1, bfile);
-
-                    for (int b_pointer : pointer.b_pointers) {
-                        if (b_pointer != -1) {
-                            BloquePuntero pointer2;
-                            fseek(bfile, spr.s_block_start + (sizeof(BloquePuntero) * inode.i_block[i]),
-                                  SEEK_SET);
-                            fread(&pointer2, sizeof(BloquePuntero), 1, bfile);
-                            for (int b_pointer2 : pointer2.b_pointers) {
-                                if (b_pointer2 != -1) {
-                                    folder = CarpetaBloque ();
-                                    fseek(bfile, spr.s_block_start + (sizeof(CarpetaBloque) * b_pointer2),
-                                          SEEK_SET);
-                                    fread(&folder, sizeof(CarpetaBloque), 1, bfile);
-                                    for (auto &j : folder.b_content) {
-                                        if (j.b_name==rutas.at(v)) {
-                                            fnd = true;
-                                            father = j.b_inodo;
-                                            inode = Inodo ();
-                                            fseek(bfile,
-                                                  spr.s_inode_start + (sizeof(Inodo) * j.b_inodo),
-                                                  SEEK_SET);
-                                            fread(&inode, sizeof(Inodo), 1, bfile);
-                                            break;
-                                        }
-                                    }
-                                } else {
-                                    break;
-                                }
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-        if (!fnd) {
-            if (padre) {
-                stack += "/" + rutas.at(v);
-                mkdir("mkdir –p -path->"+stack);//"mkdir –p -path->/home/luis"
-                v = -1;
-                fseek(bfile,
-                      spr.s_inode_start,
-                      SEEK_SET);
-                fread(&inode, sizeof(Inodo), 1, bfile);
-            } else {
-                throw runtime_error("no es posible crear el directorio");
-            }
-        }
-    }
-
-    fnd = false;
-    for (int i = 0; i < 15; ++i) {
-        if (inode.i_block[i] != -1) {
-            if (i < 12) {
-                fseek(bfile, spr.s_block_start + (sizeof(CarpetaBloque) * inode.i_block[i]), SEEK_SET);
-                fread(&folder, sizeof(CarpetaBloque), 1, bfile);
-                for (int j = 0; j < 4; ++j) {
-                    if (folder.b_content[j].b_inodo == -1) {
-                        past = inode.i_block[i];
-                        bi = getfree(spr, auxMontada.ruta, "BI");
-                        bb = getfree(spr, auxMontada.ruta, "BB");
-
-                        inodetmp.i_uid = 1;
-                        inodetmp.I_gid = 1;
-                        inodetmp.i_s = sizeof(sizeof(CarpetaBloque));
-                        inodetmp.i_atime = spr.s_umtime;
-                        inodetmp.i_ctime = spr.s_umtime;
-                        inodetmp.i_mtime = spr.s_umtime;
-                        inodetmp.i_type = 0;
-                        inodetmp.i_perm = 664;
-                        inodetmp.i_block[0] = bb;
-
-                        strcpy(foldertmp.b_content[0].b_name, ".");
-                        foldertmp.b_content[0].b_inodo = bi;
-                        strcpy(foldertmp.b_content[1].b_name, "..");
-                        foldertmp.b_content[1].b_inodo = father;
-                        strcpy(foldertmp.b_content[2].b_name, "-");
-                        strcpy(foldertmp.b_content[3].b_name, "-");
-
-                        folder.b_content[j].b_inodo = bi;
-                        strcpy(folder.b_content[j].b_name, newf.c_str());
-                        fnd = true;
-                        i = 20;
-                        break;
-                    }
-                }
-
-            }
-        }
-    }
-
-    if (!fnd) {
-        for (int i = 0; i < 15; ++i) {
-            if (inode.i_block[i] == -1) {
-                if (i < 12) {
-
-                    bi = getfree(spr, auxMontada.ruta, "BI");
-                    past = getfree(spr, auxMontada.ruta, "BB");
-
-                    folder = CarpetaBloque ();
-                    strcpy(folder.b_content[0].b_name, ".");
-                    folder.b_content[0].b_inodo = bi;
-                    strcpy(folder.b_content[1].b_name, "..");
-                    folder.b_content[1].b_inodo = father;
-                    folder.b_content[2].b_inodo = bi;
-                    strcpy(folder.b_content[2].b_name, newf.c_str());
-                    strcpy(folder.b_content[3].b_name, "-");
-
-                    inode.i_block[i] = past;
-                    updatebm(spr, auxMontada.ruta, "BB");
-
-                    bb = getfree(spr, auxMontada.ruta, "BB");
-                    inodetmp.i_uid = 1;
-                    inodetmp.I_gid = 1;
-                    inodetmp.i_s = sizeof(sizeof(CarpetaBloque));
-                    inodetmp.i_atime = spr.s_umtime;
-                    inodetmp.i_ctime = spr.s_umtime;
-                    inodetmp.i_mtime = spr.s_umtime;
-                    inodetmp.i_type = 0;
-                    inodetmp.i_perm = 664;
-                    inodetmp.i_block[0] = bb;
-
-                    strcpy(foldertmp.b_content[0].b_name, ".");
-                    foldertmp.b_content[0].b_inodo = bi;
-                    strcpy(foldertmp.b_content[1].b_name, "..");
-                    foldertmp.b_content[1].b_inodo = father;
-                    strcpy(foldertmp.b_content[2].b_name, "-");
-                    strcpy(foldertmp.b_content[3].b_name, "-");
-
-                    fseek(bfile, spr.s_inode_start + (sizeof(Inodo) * father), SEEK_SET);
-                    fwrite(&inode, sizeof(Inodo), 1, bfile);
-                    break;
-                }
-            }
-        }
-
-
-    }
-
-    fseek(bfile, spr.s_inode_start + (sizeof(Inodo) * bi), SEEK_SET);
-    fwrite(&inodetmp, sizeof(Inodo), 1, bfile);
-
-    fseek(bfile, spr.s_block_start + (sizeof(CarpetaBloque) * bb), SEEK_SET);
-    fwrite(&foldertmp, sizeof(CarpetaBloque), 1, bfile);
-
-    fseek(bfile, spr.s_block_start + (sizeof(CarpetaBloque) * past), SEEK_SET);
-    fwrite(&folder, sizeof(CarpetaBloque), 1, bfile);
-
-    updatebm(spr, auxMontada.ruta, "BI");
-    updatebm(spr, auxMontada.ruta, "BB");
-
-    if (spr.s_filesystem_type == 3) {
-        string event;
-        for (string ttpp: rutas) {
-            event += "/" + ttpp;
-        }
-        event += "/" + newf;
-        Journaling joutmp;
-        Journaling jouraux;
-        strcpy(joutmp.contenido, event.c_str());
-        strcpy(joutmp.path, event.data());
-        joutmp.tipo = '0';
-        joutmp.size = sizeof(event) + sizeof(CarpetaBloque);
-        strcpy(joutmp.tipo_operacion, "mkdir");
-        //joutmp.date = spr.s_umtime;
-
-        FILE *rec = fopen(auxMontada.ruta.c_str(), "rb+");
-        fseek(rec, auxMontada.particion.part_start + sizeof(SuperBloque), SEEK_SET);
-
-        int position = 0;
-        while (true) {
-            fread(&rec, sizeof(Journaling), 1, rec);
-            if (jouraux.tipo == '1') {
-                break;
-            }
-            position++;
-        }
-
-        fseek(bfile, auxMontada.particion.part_start + (sizeof(SuperBloque) + sizeof(Journaling) * position),
-              SEEK_SET);
-        fwrite(&joutmp, sizeof(Journaling), 1, bfile);
-        fclose(rec);
-    }
-
-    //shared.response("MKDR", "se ha creado el directorio");
-    fclose(bfile);
-}
-
 void tree(string p,string id) {
     try {
 
@@ -2730,6 +2455,17 @@ void tree(string p,string id) {
         int freeI = getfree(spr, path, "BI");
 
         string pd = p.substr(0, p.find('.'));
+        string tipo=p.substr(p.find('.')+1);
+        bool pdf=false;
+        bool png=false;
+        bool jpg=false;
+        if(tipo=="pdf"){
+            pdf=true;
+        }else if(tipo=="png"){
+            png=true;
+        }else if(tipo=="jpg"){
+            jpg=true;
+        }
         pd += ".dot";
         FILE *doc = fopen(pd.c_str(), "r");
         if (doc == NULL) {
@@ -2870,8 +2606,14 @@ void tree(string p,string id) {
 
         ofstream outfile(pd);
         outfile << content.c_str() << endl;
-        outfile.close();
-        string function = "dot -Tjpg " + pd + " -o " + p;
+        outfile.close();string function="";
+        if(png){
+            function = "dot -Tpng " + pd + " -o " + p;
+        }else if(pdf){
+            function = "dot -Tpdf " + pd + " -o " + p;
+        }else if(jpg){
+            function = "dot -Tjpg " + pd + " -o " + p;
+        }
         system(function.c_str());
         //function = "rm \"" + pd + "\"";
         //system(function.c_str());
@@ -3269,21 +3011,28 @@ MBR firstFitParticion(MBR disco,vector<Traslado> t,vector<Partition> p,Partition
         }
     }
     if(agregar){
-        if(disco.mbr_partition_1.part_s==0){
-            disco.mbr_partition_1=nueva;
-            extendidaInicio=disco.mbr_partition_1.part_start;
-        }else if(disco.mbr_partition_2.part_s==0){
+        if(contador==0){
+            Partition aux2=Partition ();
+            aux2=disco.mbr_partition_3;
+            disco.mbr_partition_4=aux2;
+            Partition aux=Partition ();
+            aux=disco.mbr_partition_2;
+            disco.mbr_partition_3=aux;
             disco.mbr_partition_2=nueva;
             extendidaInicio=disco.mbr_partition_2.part_start;
-        }else if(disco.mbr_partition_3.part_s==0){
+        }else if(contador==1){
+            Partition aux=Partition ();
+            aux=disco.mbr_partition_3;
+            disco.mbr_partition_4=aux;
             disco.mbr_partition_3=nueva;
             extendidaInicio=disco.mbr_partition_3.part_start;
-        }else if(disco.mbr_partition_4.part_s==0){
+        }else if(contador==2){
             disco.mbr_partition_4=nueva;
             extendidaInicio=disco.mbr_partition_4.part_start;
         }else{
-            cout <<  "Particiones llenas" << endl;
+            cout <<  "Particones llenas" << endl;
         }
+
     }else{
         cout <<  "Sin espacio para agregar particion" << endl;
     }
@@ -3372,14 +3121,20 @@ MBR bestFitPartitton(MBR disco,vector<Traslado> t,vector<Partition> p,Partition 
         if(bestIdx==0){
             nueva.part_start=t[bestIdx].fin;
             agregar=true;
-            disco.mbr_partition_3=disco.mbr_partition_2;
-            disco.mbr_partition_4=disco.mbr_partition_3;
+            Partition aux=Partition ();
+            aux=disco.mbr_partition_3;
+            disco.mbr_partition_4=aux;
+            Partition aux2=Partition ();
+            aux2=disco.mbr_partition_2;
+            disco.mbr_partition_3=aux2;
             disco.mbr_partition_2=nueva;
             extendidaInicio=nueva.part_start;
         }else if(bestIdx==1){
             nueva.part_start=t[bestIdx].fin;
             agregar=true;
-            disco.mbr_partition_4=disco.mbr_partition_3;
+            Partition aux=Partition ();
+            aux=disco.mbr_partition_3;
+            disco.mbr_partition_4=aux;
             disco.mbr_partition_3=nueva;
             extendidaInicio=nueva.part_start;
         }else if(bestIdx==2){
@@ -3418,14 +3173,20 @@ MBR worstFitPartitton(MBR disco,vector<Traslado> t,vector<Partition> p,Partition
         if(bestIdx==0){
             nueva.part_start=t[bestIdx].fin;
             agregar=true;
-            disco.mbr_partition_3=disco.mbr_partition_2;
-            disco.mbr_partition_4=disco.mbr_partition_3;
+            Partition aux=Partition ();
+            aux=disco.mbr_partition_3;
+            disco.mbr_partition_4=aux;
+            Partition aux2=Partition ();
+            aux2=disco.mbr_partition_2;
+            disco.mbr_partition_3=aux2;
             disco.mbr_partition_2=nueva;
             extendidaInicio=nueva.part_start;
         }else if(bestIdx==1){
             nueva.part_start=t[bestIdx].fin;
             agregar=true;
-            disco.mbr_partition_4=disco.mbr_partition_3;
+            Partition aux=Partition ();
+            aux=disco.mbr_partition_3;
+            disco.mbr_partition_4=aux;
             disco.mbr_partition_3=nueva;
             extendidaInicio=nueva.part_start;
         }else if(bestIdx==2){
@@ -3463,6 +3224,17 @@ void dks(string p, string id){
         fclose(file);
 
         string pd = p.substr(0, p.find('.'));
+        string tipo=p.substr(p.find('.')+1);
+        bool pdf=false;
+        bool png=false;
+        bool jpg=false;
+        if(tipo=="pdf"){
+            pdf=true;
+        }else if(tipo=="png"){
+            png=true;
+        }else if(tipo=="jpg"){
+            jpg=true;
+        }
         pd += ".dot";
         FILE *doc = fopen(pd.c_str(), "r");
         if (doc == NULL) {
@@ -3633,8 +3405,14 @@ void dks(string p, string id){
         content += "</table>>];\n}\n";
         ofstream outfile(pd);
         outfile << content.c_str() << endl;
-        outfile.close();
-        string function = "dot -Tjpg " + pd + " -o " + p;
+        outfile.close();string function="";
+        if(png){
+            function = "dot -Tpng " + pd + " -o " + p;
+        }else if(pdf){
+            function = "dot -Tpdf " + pd + " -o " + p;
+        }else if(jpg){
+            function = "dot -Tjpg " + pd + " -o " + p;
+        }
         system(function.c_str());
         //function = "rm \"" + pd + "\"";
         //system(function.c_str());
@@ -3666,7 +3444,17 @@ void Rmbr(string p, string id) {
         fclose(file);
 
         string pd = p.substr(0, p.find('.'));
-        string tipo=p.substr(p.find('.'));
+        string tipo=p.substr(p.find('.')+1);
+        bool pdf=false;
+        bool png=false;
+        bool jpg=false;
+        if(tipo=="pdf"){
+            pdf=true;
+        }else if(tipo=="png"){
+            png=true;
+        }else if(tipo=="jpg"){
+            jpg=true;
+        }
         pd += ".dot";
         FILE *doc = fopen(pd.c_str(), "r");
         if (doc == NULL) {
@@ -3808,7 +3596,15 @@ void Rmbr(string p, string id) {
         //string contenido=content;
         outfile <<t.c_str()<<n.c_str() << endl;
         outfile.close();
-        string function = "dot -Tjpg " + pd + " -o " + p;
+        string function="";
+        if(png){
+            function = "dot -Tpng " + pd + " -o " + p;
+        }else if(pdf){
+            function = "dot -Tpdf " + pd + " -o " + p;
+        }else if(jpg){
+            function = "dot -Tjpg " + pd + " -o " + p;
+        }
+
         system(function.c_str());
         //function = "rm \"" + pd + "\"";
         //system(function.c_str());

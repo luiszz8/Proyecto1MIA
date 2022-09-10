@@ -473,6 +473,13 @@ bool Exist(string path){
 }
 
 void rmdisk(string linea){
+    cout <<  "Desea Eliminar S/N " << endl;
+    string seguro;
+    getline(cin,seguro);
+    if(seguro=="N"){
+        return;
+    }
+    cout <<  "Salio pausa en pausa " << endl;
     size_t pos = linea.find(" ");
     string limpio = linea.substr (pos+1);
 
@@ -504,6 +511,7 @@ void rmdisk(string linea){
         cout <<  ruta << endl;
         if(Exist(ruta)){
             remove(ruta.c_str());
+            cout <<  "Disco eliminado" << endl;
         }
     }
 };
@@ -1195,6 +1203,12 @@ void mount(string linea){
     actual.id=carnet+numPart+nombreDico;
     actual.ruta=part.ruta;
     particionesMontadas.push_back(actual);
+    cout <<  "--------------" << endl;
+    cout <<  "Montadas" << endl;
+    for(PartitionMontada particionM:particionesMontadas){
+        cout <<  particionM.particion.part_name << endl;
+    }
+    cout <<  "--------------" << endl;
 }
 
 void unmount(string linea){
@@ -1203,17 +1217,58 @@ void unmount(string linea){
     string limpio = linea.substr (pos+1);
     //-f
     string f=split(limpio,"-id");
+    string id="";
     if(strcmp(limpio.c_str(),f.c_str())==0){
         cout <<  "No esta el parametro id" << endl;
         return;
     }else{
         int end = f.find(" ");
+        id=f.substr(2, end-2);
         part.ajuste=f.substr(2, end-2);
 
         cout <<  "El ID es" << endl;
         cout <<  part.ajuste << endl;
     }
 
+    PartitionMontada auxMontada;
+    for (PartitionMontada actual :particionesMontadas) {
+        if (actual.id==id){
+            auxMontada=actual;
+            break;
+        }
+    }
+
+    MBR auxDisco=LeerDisco(auxMontada.ruta);
+
+
+    if(auxDisco.mbr_partition_1.part_start==auxMontada.particion.part_start){
+        auxDisco.mbr_partition_1.part_status='n';
+
+
+    }else if(auxDisco.mbr_partition_2.part_start==auxMontada.particion.part_start){
+        auxDisco.mbr_partition_2.part_status='n';
+
+
+    }else if(auxDisco.mbr_partition_3.part_start==auxMontada.particion.part_start){
+        auxDisco.mbr_partition_3.part_status='n';
+
+
+    }else if(auxDisco.mbr_partition_4.part_start==auxMontada.particion.part_start){
+        auxDisco.mbr_partition_4.part_status='n';
+
+
+    }
+
+    FILE *file;
+    file = fopen(auxMontada.ruta.c_str(), "rb+");
+    int posicion=0;
+    int existe=1;
+    bool primero=false;
+    //MBR aux;
+    fseek(file, 0, SEEK_SET);
+    fwrite(&auxDisco, sizeof(MBR), 1, file);
+    fclose(file);
+    cout <<  "Particion desmontada" << endl;
 }
 
 
@@ -1304,6 +1359,10 @@ void ejecutar(string ruta){
             mkgrp(linea);
         }else if(temporal=="mkusr"){
             mkurs(linea);
+        }else if(temporal=="rmdisk"){
+            rmdisk(linea);
+        }else if(temporal=="unmount"){
+            unmount(linea);
         }
     }
 }
@@ -1897,6 +1956,7 @@ void mkfs(string linea){
     for (PartitionMontada actual :particionesMontadas) {
         if (actual.id==id){
             auxMontada=actual;
+            break;
         }
     }
 
@@ -2175,6 +2235,7 @@ bool login(string linea) {
     for (PartitionMontada actual :particionesMontadas) {
         if (actual.id==id){
             auxMontada=actual;
+            break;
         }
     }
 
@@ -2709,17 +2770,17 @@ void tree(string p,string id) {
                                                  "<tr>\n"
                                                  "<td>i_atime</td>\n"
                                                  "<td>" +
-                       to_string(inode.i_atime) + "</td>\n"
+                       asctime(localtime(&inode.i_atime)) + "</td>\n"
                                                   "</tr>\n"
                                                   "<tr>\n"
                                                   "<td>i_ctime</td>\n"
                                                   "<td>" +
-                       to_string(inode.i_ctime) + "</td>\n"
+                    asctime(localtime(&inode.i_ctime)) + "</td>\n"
                                                   "</tr>\n"
                                                   "<tr>\n"
                                                   "<td>i_mtime</td>\n"
                                                   "<td>" +
-                       to_string(inode.i_mtime) + "</td>\n"
+                    asctime(localtime(&inode.i_mtime)) + "</td>\n"
                                                   "</tr>\n";
             for (int j = 0; j < 15; ++j) {
                 content += "<tr>\n"
@@ -3667,32 +3728,32 @@ void Rmbr(string p, string id) {
                     extended = partitions[i];
                 }
                 particiones ="<tr><td COLSPAN = '2'>PARTICION</td></tr><tr>"
-                           "<td>part_status_" + to_string(i + 1) + "</td>"
+                           "<td>part_status" + to_string(i + 1) + "</td>"
                                                                    "<td>" +
                            partitions[i].part_status + " </td >\n"
                                                        "</tr>\n"
                                                        "<tr>\n"
-                                                       "<td>part_type_" + to_string(i + 1) + "</td>\n"
+                                                       "<td>part_type" + to_string(i + 1) + "</td>\n"
                                                                                              "<td>" +
                            partitions[i].part_type + "</td>\n"
                                                      "</tr>\n"
                                                      "<tr>\n"
-                                                     "<td>part_fit_" + to_string(i + 1) + "</td>\n"
+                                                     "<td>part_fit" + to_string(i + 1) + "</td>\n"
                                                                                           "<td>" +
                            partitions[i].part_fit + "</td>\n"
                                                     "</tr>\n"
                                                     "<tr>\n"
-                                                    "<td>part_start_" + to_string(i + 1) + "</td>\n"
+                                                    "<td>part_start" + to_string(i + 1) + "</td>\n"
                                                                                            "<td>" +
                            to_string(partitions[i].part_start) + "</td>\n"
                                                                  "</tr>\n"
                                                                  "<tr>\n"
-                                                                 "<td>part_size_" + to_string(i + 1) + "</td>\n"
+                                                                 "<td>part_s" + to_string(i + 1) + "</td>\n"
                                                                                                        "<td>" +
                            to_string(partitions[i].part_s) + "</td>\n"
                                                                 "</tr>\n"
                                                                 "<tr>\n"
-                                                                "<td>part_name_" + to_string(i + 1) + "</td>\n"
+                                                                "<td>part_name" + to_string(i + 1) + "</td>\n"
                                                                                                       "<td>" +
                            partitions[i].part_name + "</td>\n"
                                                      "</tr>\n";
@@ -3707,22 +3768,22 @@ void Rmbr(string p, string id) {
                 textoE= "<tr><td BORDER=\"0\"></td><td BORDER=\"0\"></td></tr>"
                         "<tr><td COLSPAN = '2'>LOGICA</td></tr>"
                            "<tr>\n"
-                           "<td>part_status_" + to_string(count + 1) + "</td>\n"
+                           "<td>part_status" + to_string(count + 1) + "</td>\n"
                                                                        "<td>" +
                            ebr.part_status + "</td>\n"
                                              "</tr>\n"
                                              "<tr>\n"
-                                             "<td>part_fit_" + to_string(count + 1) + "</td>\n"
+                                             "<td>part_fit" + to_string(count + 1) + "</td>\n"
                                                                                       "<td>" +
                            ebr.part_fit + "</td>\n"
                                           "</tr>\n"
                                           "<tr>\n"
-                                          "<td>part_start_" + to_string(count + 1) + "</td>\n"
+                                          "<td>part_start" + to_string(count + 1) + "</td>\n"
                                                                                      "<td>" +
                            to_string(ebr.part_start) + "</td>\n"
                                                        "</tr>\n"
                                                        "<tr>\n"
-                                                       "<td>part_size_" + to_string(count + 1) + "</td>\n"
+                                                       "<td>part_s" + to_string(count + 1) + "</td>\n"
                                                                                                  "<td>" +
                            to_string(ebr.part_s) + "</td>\n"
                                                       "</tr>\n"

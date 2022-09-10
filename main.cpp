@@ -2696,6 +2696,7 @@ void mkgrp(string linea) {
                 if (listaG[2] == name) {
                     if (listaG[0] != "0") {
                         cout <<  "El grupo ya existe" << endl;
+                        return;
                     }
                 }
             }

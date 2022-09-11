@@ -199,6 +199,7 @@ int extendidaInicio=0;
 void Rmbr(string p, string id);
 void pausa();
 void reporte(string linea);
+void logout();
 
 void reporte(string linea){
     size_t pos = linea.find(" ");
@@ -354,7 +355,7 @@ void mkdisk(string linea){
         string m="m";
         string k="k";
         if(strcmp(disk.unidades.c_str(),m.c_str())==0){
-            //cout <<  "El ajuste BF" << endl;
+            //cout <<  "El ajuste BF" << endl;exec -path->/home/luis/Escritorio/Archvio Entrada/Archivos de Entrada/Parte 2/parte2.mia
             megas=true;
         }else if(strcmp(disk.unidades.c_str(),k.c_str())==0){
             //cout <<  "El ajuste FF" << endl;exec -path->/home/luis/Escritorio/Archvio Entrada/Archivos de Entrada/Parte 1/parte1.mia
@@ -1414,6 +1415,8 @@ void ejecutar(string ruta){
             mkfs(linea);
         }else if(temporal=="login"){
             login(linea);
+        }else if(temporal=="logout"){
+            logout();
         }else if(temporal=="mkgrp"){
             mkgrp(linea);
         }else if(temporal=="mkusr"){
@@ -2332,10 +2335,15 @@ bool login(string linea) {
             }
         }
     }
+    cout <<  "No se pudo iniciar sesión" << endl;
     return false;
 }
 
 void logout(){
+    if(!userActive.active){
+        cout <<  "Sin usuario logueado" << endl;
+        return;
+    }
     userActive.idPart = "";
     userActive.user = "";
     userActive.pass = "";

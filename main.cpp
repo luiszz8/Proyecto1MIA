@@ -87,6 +87,7 @@ typedef struct{
     Partition particion;
     string id;
     string ruta;
+    bool montada=false;
 }PartitionMontada;
 
 typedef struct{
@@ -345,6 +346,7 @@ void mkdisk(string linea){
     if(strcmp(limpio.c_str(),u.c_str())==0){
         cout <<  "No esta el parametro u" << endl;
         disk.unidades="m";
+        megas=true;
     }else{
         int end = u.find(" ");
         cout <<  "La unidad es" << endl;
@@ -355,19 +357,18 @@ void mkdisk(string linea){
             //cout <<  "El ajuste BF" << endl;
             megas=true;
         }else if(strcmp(disk.unidades.c_str(),k.c_str())==0){
-            //cout <<  "El ajuste FF" << endl;
+            //cout <<  "El ajuste FF" << endl;exec -path->/home/luis/Escritorio/Archvio Entrada/Archivos de Entrada/Parte 1/parte1.mia
         }else{
             cout <<  "La unidad es incorrecta" << endl;
             return;
         }
-        if(megas){
-            disco.mbr_tamano=disco.mbr_tamano*1024*1024;
-        }else{
-            disco.mbr_tamano=disco.mbr_tamano*1024;
-        }
-        cout <<  disk.unidades << endl;
     }
-
+    if(megas){
+        disco.mbr_tamano=disco.mbr_tamano*1024*1024;
+    }else{
+        disco.mbr_tamano=disco.mbr_tamano*1024;
+    }
+    cout <<  disk.unidades << endl;
     //ruta
     string ruta=split(limpio,"-path");
     if(strcmp(limpio.c_str(),ruta.c_str())==0){
@@ -575,16 +576,7 @@ void fdisk(string linea){
         }
 
 
-        //-add
-        string add=split(limpio,"-add");
-        if(strcmp(limpio.c_str(),add.c_str())==0){
-            cout <<  "El parametro -add no esta" << endl;
-        }else{
-            int end = add.find(" ");
-            part.add=stoi(add.substr(2, end-2));
-            cout <<  "ADD" << endl;
-            cout << part.add << endl;
-        }
+
 
         //-s
         string s=split(limpio,"-s");
@@ -602,6 +594,8 @@ void fdisk(string linea){
         }
 
         //-u
+        bool megas=false;
+        bool kil=false;
         string u=split(limpio,"-u");
         if(strcmp(limpio.c_str(),u.c_str())==0){
             cout <<  "No esta el parametro u" << endl;
@@ -618,9 +612,11 @@ void fdisk(string linea){
                 //cout <<  "El ajuste BF" << endl;
                 //megas=true;
                 part.tamanio=part.tamanio*1024*1024;
+                megas=true;
             }else if(strcmp(part.unidades.c_str(),k.c_str())==0){
                 //cout <<  "El ajuste FF" << endl;
                 part.tamanio=part.tamanio*1024;
+                kil=true;
             }else if(strcmp(part.unidades.c_str(),b.c_str())==0){
                 //cout <<  "El ajuste FF" << endl;
             }else{
@@ -628,6 +624,23 @@ void fdisk(string linea){
                 return;
             }
             cout <<  part.unidades << endl;
+        }
+
+        //-add
+        string add=split(limpio,"-add");
+        if(strcmp(limpio.c_str(),add.c_str())==0){
+            cout <<  "El parametro -add no esta" << endl;
+        }else{
+            int end = add.find(" ");
+            part.add=stoi(add.substr(2, end-2));
+            cout <<  "ADD" << endl;
+            if(megas){
+                part.add=part.add*1024;
+            }else if(kil){
+                part.add=part.add;
+            }
+
+            cout << part.add << endl;
         }
         //ruta
         string ruta=split(limpio,"-path");
@@ -937,8 +950,7 @@ void fdisk(string linea){
                     if(part.add>0&&discoAux.mbr_partition_2.part_s==0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s==0){
                         if(discoAux.mbr_tamano>discoAux.mbr_partition_1.part_s+part.add){
                             discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
-                            cout <<  "Se agrego espacio" << endl;
-                            return;
+                            //cout <<  "Se agrego espacio" << endl;
                         }else{
                             cout <<  "Supera tamaño de disco" << endl;
                             return;
@@ -964,8 +976,11 @@ void fdisk(string linea){
                         inicioDisco=discoAux.mbr_partition_4.part_start;
                     }
 
-                    if(part.add>0 && discoAux.mbr_partition_1.part_s+part.add<inicioDisco){
+                    if(discoAux.mbr_partition_1.part_s+part.add<inicioDisco &&0<discoAux.mbr_partition_1.part_s+part.add){
                         discoAux.mbr_partition_1.part_s=discoAux.mbr_partition_1.part_s+part.add;
+                    }else{
+                        cout <<  "Supera tamaño" << endl;
+                        return;
                     }
                 }
 
@@ -981,7 +996,6 @@ void fdisk(string linea){
                     if(part.add>0&&discoAux.mbr_partition_3.part_s==0&&discoAux.mbr_partition_4.part_s==0){
                         if(discoAux.mbr_tamano>discoAux.mbr_partition_2.part_s+part.add){
                             discoAux.mbr_partition_2.part_s=discoAux.mbr_partition_2.part_s+part.add;
-                            cout <<  "Se agrego espacio" << endl;
                             return;
                         }else{
                             cout <<  "Supera tamaño de disco" << endl;
@@ -1005,8 +1019,11 @@ void fdisk(string linea){
                         inicioDisco=discoAux.mbr_partition_4.part_start;
                     }
 
-                    if(part.add>0 && discoAux.mbr_partition_2.part_s+part.add<inicioDisco){
+                    if(discoAux.mbr_partition_2.part_s+part.add<inicioDisco){
                         discoAux.mbr_partition_2.part_s=discoAux.mbr_partition_2.part_s+part.add;
+                    }else{
+                        cout <<  "Supera tamaño" << endl;
+                        return;
                     }
                 }
 
@@ -1022,8 +1039,7 @@ void fdisk(string linea){
                     if(part.add>0&&discoAux.mbr_partition_4.part_s==0){
                         if(discoAux.mbr_tamano>discoAux.mbr_partition_3.part_s+part.add){
                             discoAux.mbr_partition_3.part_s=discoAux.mbr_partition_3.part_s+part.add;
-                            cout <<  "Se agrego espacio" << endl;
-                            return;
+                            //cout <<  "Se agrego espacio" << endl;
                         }else{
                             cout <<  "Supera tamaño de disco" << endl;
                             return;
@@ -1043,8 +1059,11 @@ void fdisk(string linea){
                         inicioDisco=discoAux.mbr_partition_4.part_start;
                     }
 
-                    if(part.add>0 && discoAux.mbr_partition_3.part_s+part.add<inicioDisco){
+                    if(discoAux.mbr_partition_3.part_s+part.add<inicioDisco){
                         discoAux.mbr_partition_3.part_s=discoAux.mbr_partition_3.part_s+part.add;
+                    }else{
+                        cout <<  "Supera tamaño" << endl;
+                        return;
                     }
                 }
 
@@ -1061,7 +1080,6 @@ void fdisk(string linea){
                         if(discoAux.mbr_tamano>discoAux.mbr_partition_4.part_s+part.add){
                             discoAux.mbr_partition_4.part_s=discoAux.mbr_partition_4.part_s+part.add;
                             cout <<  "Se agrego espacio" << endl;
-                            return;
                         }else{
                             cout <<  "Supera tamaño de disco" << endl;
                             return;
@@ -1078,7 +1096,7 @@ void fdisk(string linea){
                     int inicioDisco=0;
 
 
-                    if(part.add>0 && discoAux.mbr_partition_4.part_s+part.add<inicioDisco){
+                    if(discoAux.mbr_partition_4.part_s+part.add<inicioDisco){
                         discoAux.mbr_partition_4.part_s=discoAux.mbr_partition_4.part_s+part.add;
                     }
                 }
@@ -1090,6 +1108,8 @@ void fdisk(string linea){
                 //MBR aux;
                 fseek(file, 0, SEEK_SET);
                 fwrite(&discoAux, sizeof(MBR), 1, file);
+                fclose(file);
+                cout <<  "Espacio modificado" << endl;
             }else if(eliminarB){
                 cout <<  "Desea Eliminar S/N " << endl;
                 string seguro;
@@ -1240,6 +1260,7 @@ void mount(string linea){
     cout <<  carnet+numPart+nombreDico << endl;
     actual.id=carnet+numPart+nombreDico;
     actual.ruta=part.ruta;
+    actual.montada=true;
     particionesMontadas.push_back(actual);
     cout <<  "--------------" << endl;
     cout <<  "Montadas" << endl;
@@ -1371,7 +1392,7 @@ void ejecutar(string ruta){
     string nombreArchivo = ruta;
     ifstream archivo(nombreArchivo.c_str());
     string linea;
-    // Obtener línea de archivo, y almacenar contenido en "linea"//exec -path->/home/luis/Descargas/pruebaExec.script
+    // Obtener línea de archivo, y almacenar contenido en "linea"//
     while (getline(archivo, linea)) {
         int comentario=linea.find("#");
         linea=linea.substr(0,comentario);
@@ -3432,6 +3453,11 @@ void Rmbr(string p, string id) {
                 auxMontada=actual;
                 path=auxMontada.ruta;
             }
+        }
+
+        if(!auxMontada.montada){
+            cout <<  "Particion no montada" << endl;
+            return;
         }
 
         FILE *file = fopen(path.c_str(), "rb+");
